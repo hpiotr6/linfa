@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["generate_convoluted_rings",""],["generate_convoluted_rings2d",""],["generate_swissroll","Generates a three dimension swiss roll, centered at the origin with height `height` and outwards speed `speed`"]]});

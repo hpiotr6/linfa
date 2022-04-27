@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["blobs","Special case of `blobs_with_distribution` with a standard normal distribution."],["blobs_with_distribution","Given an input matrix `blob_centroids`, with shape `(n_blobs, n_features)`, generate `blob_size` data points (a “blob”) around each of the blob centroids."]]});
