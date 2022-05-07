@@ -1,15 +1,15 @@
 [package]
 name = "linfa-forest"
 version = "0.5.0"
-edition = "2018"
-authors = ["Moss Ebeling <moss@banay.me>"]
-description = "A collection of tree-based algorithms"
+edition = "2021"
+authors = ["Jakub Firlej <jakubfirlej64@gmail.com>", "Piotr Honda <a@b.c>"]
+description = "An implementation of random forest classification algorithm"
 license = "MIT/Apache-2.0"
 
 repository = "https://github.com/rust-ml/linfa"
 readme = "README.md"
 
-keywords = ["machine-learning", "linfa", "trees", "supervised"]
+keywords = ["machine-learning", "linfa", "forest", "supervised"]
 categories = ["algorithms", "mathematics", "science"]
 
 [features]
