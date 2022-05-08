@@ -1,0 +1,12 @@
+[package]
+name = "linfa-forest-piotr"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+linfa = { version = "0.5.0", path = "../.." }
+linfa-trees = { version = "0.5.0", path = "../linfa-trees" }
+ndarray = { version = "0.15" , features = ["rayon", "approx"]}
