@@ -24,10 +24,12 @@ default-features = false
 features = ["std", "derive"]
 
 [dependencies]
+rand = { version = "0.8", features = ["small_rng"] }
 ndarray = { version = "0.15" , features = ["rayon", "approx"]}
 ndarray-rand = "0.14"
 
 linfa = { version = "0.5.0", path = "../.." }
+linfa-trees = { version = "0.5.0", path = "../linfa-trees"}
 
 [dev-dependencies]
 rand = { version = "0.8", features = ["small_rng"] }

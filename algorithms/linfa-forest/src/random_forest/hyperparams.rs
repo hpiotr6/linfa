@@ -2,29 +2,18 @@ use linfa::{
     error::{Error, Result},
     Float, Label, ParamGuard,
 };
+use linfa_trees::{DecisionTree, DecisionTreeParams, DecisionTreeValidParams, SplitQuality};
+
 use std::marker::PhantomData;
 
 #[cfg(feature = "serde")]
 use serde_crate::{Deserialize, Serialize};
 
-/// The metric used to determine the feature by which a node is split
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(crate = "serde_crate")
-)]
 #[derive(Clone, Copy, Debug)]
-pub enum SplitQuality {
-    /// Measures the degree of probability of a randomly chosen point in the subtree being misclassified, defined as
-    /// one minus the sum over all labels of the squared probability of encountering that label.
-    /// The Gini index of the root is given by the weighted sum of the indexes of its two subtrees.
-    /// At each step the split is applied to the feature which decreases the most the Gini impurity of the root.
-    Gini,
-    /// Measures the entropy of a subtree, defined as the sum over all labels of the probability of encountering that label in the
-    /// subtree times its logarithm in base two, with negative sign. The entropy of the root minus the weighted sum of the entropy
-    /// of its two subtrees defines the "information gain" obtained by applying the split. At each step the split is applied to the
-    /// feature with the biggest information gain
-    Entropy,
+pub enum BootstrapType {
+    BootstrapSamples(usize),
+    BootstrapFeatures(usize),
+    BootstrapSamplesFeatures(usize, usize)
 }
 
 #[cfg_attr(
@@ -32,18 +21,30 @@ pub enum SplitQuality {
     derive(Serialize, Deserialize),
     serde(crate = "serde_crate")
 )]
-#[derive(Clone, Copy, Debug)]
-pub struct RandomForestValidParams<F, L> {
-    split_quality: SplitQuality,
-    max_depth: Option<usize>,
-    min_weight_split: f32,
-    min_weight_leaf: f32,
-    min_impurity_decrease: F,
-
-    label_marker: PhantomData<L>,
+// #[derive(Clone, Copy, Debug)]
+pub struct RandomForestValidParams<F: Float, L: Label> {
+    n_trees: usize,
+    tree_params: DecisionTreeParams<F, L>,
+    bootstrap_type: BootstrapType,
+    trees: Vec<DecisionTree<F, L>>
 }
 
-impl<F: Float, L> RandomForestValidParams<F, L> {
+use crate::RandomForest;
+
+impl<F: Float, L: Label> RandomForestValidParams<F, L> {
+
+    pub fn n_trees(&self) -> usize {
+        self.n_trees
+    }
+    pub fn bootstrap_type(&self) -> BootstrapType {
+        self.bootstrap_type
+    }
+    pub fn trees(&self) -> &Vec<DecisionTree<F, L>> {
+        &self.trees
+    }
+    pub fn tree_params(&self) -> &DecisionTreeParams<F, L> {
+        &self.tree_params
+    }
 
 }
 
@@ -52,19 +53,32 @@ impl<F: Float, L> RandomForestValidParams<F, L> {
     derive(Serialize, Deserialize),
     serde(crate = "serde_crate")
 )]
-#[derive(Clone, Copy, Debug)]
-pub struct RandomForestParams<F, L>(RandomForestValidParams<F, L>);
+// #[derive(Clone, Copy, Debug)]
+pub struct RandomForestParams<F: Float, L: Label>(RandomForestValidParams<F, L>);
 
 impl<F: Float, L: Label> RandomForestParams<F, L> {
     pub fn new() -> Self {
         Self(RandomForestValidParams {
-            split_quality: SplitQuality::Gini,
-            max_depth: None,
-            min_weight_split: 2.0,
-            min_weight_leaf: 1.0,
-            min_impurity_decrease: F::cast(0.00001),
-            label_marker: PhantomData,
+            n_trees: 100,
+            tree_params: DecisionTreeParams::new(),
+            bootstrap_type: BootstrapType::BootstrapSamples(10),
+            trees: Vec::new()
         })
+    }
+
+    pub fn n_trees(mut self, n_trees: usize) -> Self {
+        self.0.n_trees = n_trees;
+        self
+    }
+
+    pub fn tree_params(mut self, tree_params: DecisionTreeParams<F, L>) -> Self {
+        self.0.tree_params = tree_params;
+        self
+    }
+
+    pub fn bootstrap_n_samples(mut self, bootstrap_type: BootstrapType) -> Self {
+        self.0.bootstrap_type = bootstrap_type;
+        self
     }
 }
 
@@ -74,16 +88,26 @@ impl<F: Float, L: Label> Default for RandomForestParams<F, L> {
     }
 }
 
+impl <F: Float, L: Label> RandomForest<F, L> {
+    /// Defaults are provided if the optional parameters are not specified:
+    /// * `n_trees = 100`
+    /// * `tree = DecisionTreeParams::new()`
+    /// * `bootstrap_type = BootstrapType::BootstrapSamples(10)`
 
-impl<F: Float, L> ParamGuard for RandomForestParams<F, L> {
+    #[allow(clippy::new_ret_no_self)]
+    pub fn params() -> RandomForestParams<F, L> {
+        RandomForestParams::new()
+    }
+}
+
+impl<F: Float, L: Label> ParamGuard for RandomForestParams<F, L> {
     type Checked = RandomForestValidParams<F, L>;
     type Error = Error;
 
     fn check_ref(&self) -> Result<&Self::Checked> {
-        if self.0.min_impurity_decrease < F::epsilon() {
+        if self.0.n_trees <= 0 {
             Err(Error::Parameters(format!(
-                "Minimum impurity decrease should be greater than zero, but was {}",
-                self.0.min_impurity_decrease
+                "Number of trees in a forest must be greater than zero!"
             )))
         } else {
             Ok(&self.0)
