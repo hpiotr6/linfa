@@ -32,6 +32,9 @@ pub struct RandomForest<F: Float, L: Label> {
 
 impl<'a, F: Float, L: Label, D: Data<Elem = F>, T>
 Fit<ArrayBase<D, Ix2>, T, Error> for RandomForestValidParams<F, L>
+    where
+        D: Data<Elem = F>,
+        T: AsSingleTargets<Elem = L> + Labels<Elem = L>,
 // FIXME: funkcje dataset.bootstrap wymagaja tych traitow (moze da sie to zapisac lepiej?)
 // where T: FromTargetArray<'a> ,
 //       <T as FromTargetArray<'a>>::Owned: AsTargets,
@@ -51,10 +54,21 @@ Fit<ArrayBase<D, Ix2>, T, Error> for RandomForestValidParams<F, L>
         // };
         for _i in 0..self.n_trees() {
             // let subsample = subsample_iterator.next().ok_or(Err("Failed to create subsample iterator"));
-            // self.trees().push(self.tree_params().clone().fit(&subsample)?);
+            //  self.trees().push(self.tree_params().clone().fit(&subsample)?);
         }
-        todo!()
-    }
+        // let trees_params = DecisionTreeParams::params();
+         let params = self.tree_params();
+         let boot = self.bootstrap_type();
+
+
+        // todo!()
+    Ok(RandomForest{
+        n_trees: 3,
+        tree_params: params.clone(),
+        bootstrap_type: self.bootstrap_type(),
+        trees: vec![]
+    })
+     }
 }
 
 impl<F: Float, L: Label + Default, D: Data<Elem = F>> PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
