@@ -31,23 +31,13 @@ pub struct RandomForest<F: Float, L: Label> {
     trees: Vec<DecisionTree<F, L>>
 }
 
-impl<'a,  F: Float, L: 'a + Label, D: Data<Elem = F>, T>
-Fit<ArrayBase<D, Ix2>, T, Error> for RandomForestValidParams<F, L>
+
+impl<'a, F: Float, L: Label + 'a + std::fmt::Debug, D, T> Fit<ArrayBase<D, Ix2>, T, Error>
+for RandomForestValidParams<F, L>
     where
         D: Data<Elem = F>,
-        T: AsSingleTargets<Elem = L> + Labels<Elem = L> + FromTargetArray<'a>,
-        <T as FromTargetArray<'a>>::Owned: AsTargets + FromTargetArray<'a>,
-        <<T as FromTargetArray<'a>>::Owned as FromTargetArray<'a>>::Owned: AsTargets,
-         L: std::marker::Copy
+        T: AsSingleTargets<Elem = L> + Labels<Elem = L>,
 
-        // T: FromTargetArray,
-        // T: AsTargets<Elem = U>,
-        // <T as FromTargetArray>::Owned: AsTargets,
-
-        // T: AsSingleTargets<Elem = L> + Labels<Elem = L> + FromTargetArray<'a> ,
-        // T: AsSingleTargets<Elem = L> + FromTargetArray,
-        // <T as FromTargetArray>::Owned: AsTargets,
-        // L: std::marker::Copy,
 
 
 // FIXME: funkcje dataset.bootstrap wymagaja tych traitow (moze da sie to zapisac lepiej?)
@@ -68,21 +58,18 @@ Fit<ArrayBase<D, Ix2>, T, Error> for RandomForestValidParams<F, L>
         //     BootstrapType::BootstrapFeatures(n_features) => dataset.bootstrap_features(n_features, &mut rng),
         //     BootstrapType::BootstrapSamplesFeatures(n_samples, n_features) => dataset.bootstrap((n_samples, n_features), &mut rng)
         // };
+        let mut trees: Vec<DecisionTree<F, L>> = Vec::new();
+
         for _i in 0..self.n_trees() {
             // let subsample = subsample_iterator.next().ok_or(Err("Failed to create subsample iterator"));
-            //  self.trees().push(self.tree_params().clone().fit(&subsample)?);
+            trees.push(self.tree_params().fit(&dataset)?);
         }
-        // let trees_params = DecisionTreeParams::params();
-         let params = self.tree_params();
-         let boot = self.bootstrap_type();
 
-
-        // todo!()
     Ok(RandomForest{
-        n_trees: 3,
-        tree_params: params.clone(),
+        n_trees: self.n_trees(),
+        tree_params: self.tree_params().clone(),
         bootstrap_type: self.bootstrap_type(),
-        trees: vec![]
+        trees: trees
     })
      }
 }
