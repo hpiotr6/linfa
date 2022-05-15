@@ -21,7 +21,7 @@ pub enum BootstrapType {
     derive(Serialize, Deserialize),
     serde(crate = "serde_crate")
 )]
-// #[derive(Clone, Copy, Debug)]
+ // #[derive(Clone, Debug)]
 pub struct RandomForestValidParams<F: Float, L: Label> {
     n_trees: usize,
     tree_params: DecisionTreeParams<F, L>,
@@ -53,7 +53,7 @@ impl<F: Float, L: Label> RandomForestValidParams<F, L> {
     derive(Serialize, Deserialize),
     serde(crate = "serde_crate")
 )]
-// #[derive(Clone, Copy, Debug)]
+// #[derive(Clone, Debug)]
 pub struct RandomForestParams<F: Float, L: Label>(RandomForestValidParams<F, L>);
 
 impl<F: Float, L: Label> RandomForestParams<F, L> {

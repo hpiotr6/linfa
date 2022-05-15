@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     // Fit the tree
     let tree = RandomForest::params().fit(&dataset).unwrap();
     // // Get accuracy on training set
-    // let accuracy = tree.predict(&dataset).confusion_matrix(&dataset).unwrap().accuracy();
+    // let accuracy = tree.predict(&dataset).confusion_matrix(&dataset).unwrap().accuracy£();
     //
 
 

@@ -1,5 +1,6 @@
 //! Linear decision trees
 //!
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
@@ -30,11 +31,25 @@ pub struct RandomForest<F: Float, L: Label> {
     trees: Vec<DecisionTree<F, L>>
 }
 
-impl<'a, F: Float, L: Label, D: Data<Elem = F>, T>
+impl<'a,  F: Float, L: 'a + Label, D: Data<Elem = F>, T>
 Fit<ArrayBase<D, Ix2>, T, Error> for RandomForestValidParams<F, L>
     where
         D: Data<Elem = F>,
-        T: AsSingleTargets<Elem = L> + Labels<Elem = L>,
+        T: AsSingleTargets<Elem = L> + Labels<Elem = L> + FromTargetArray<'a>,
+        <T as FromTargetArray<'a>>::Owned: AsTargets + FromTargetArray<'a>,
+        <<T as FromTargetArray<'a>>::Owned as FromTargetArray<'a>>::Owned: AsTargets,
+         L: std::marker::Copy
+
+        // T: FromTargetArray,
+        // T: AsTargets<Elem = U>,
+        // <T as FromTargetArray>::Owned: AsTargets,
+
+        // T: AsSingleTargets<Elem = L> + Labels<Elem = L> + FromTargetArray<'a> ,
+        // T: AsSingleTargets<Elem = L> + FromTargetArray,
+        // <T as FromTargetArray>::Owned: AsTargets,
+        // L: std::marker::Copy,
+
+
 // FIXME: funkcje dataset.bootstrap wymagaja tych traitow (moze da sie to zapisac lepiej?)
 // where T: FromTargetArray<'a> ,
 //       <T as FromTargetArray<'a>>::Owned: AsTargets,
@@ -42,9 +57,10 @@ Fit<ArrayBase<D, Ix2>, T, Error> for RandomForestValidParams<F, L>
 {
     type Object = RandomForest<F, L>;
 
+
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
         let mut rng = SmallRng::seed_from_u64(42); // TODO: rng jako parametr lasu
-        // let mut subsample_iterator = dataset.bootstrap_samples(10, &mut rng);
+        // let x = dataset.bootstrap_samples(10, &mut rng);
 
         // FIXME: wybór rodzaju bootstrapa nie dziala, kompilator nie pozwala
         // let mut subsample_iterator = match self.bootstrap_type() {
