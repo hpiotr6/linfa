@@ -14,7 +14,9 @@ fn main() -> Result<()> {
     // Load the dataset
     let dataset = linfa_datasets::iris();
     // Fit the tree
-    let tree = RandomForest::params().fit(&dataset).unwrap();
+    let tree = RandomForest::params()
+        .n_trees(1)
+        .fit(&dataset).unwrap();
     // // Get accuracy on training set
     // let accuracy = tree.predict(&dataset).confusion_matrix(&dataset).unwrap().accuracy£();
     //

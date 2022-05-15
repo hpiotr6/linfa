@@ -86,3 +86,54 @@ impl<F: Float, L: Label + Default, D: Data<Elem = F>> PredictInplace<ArrayBase<D
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    //
+    use approx::assert_abs_diff_eq;
+    use linfa::{error::Result, metrics::ToConfusionMatrix, Dataset, ParamGuard};
+    use ndarray::{array, concatenate, s, Array, Array1, Array2, Axis};
+    use rand::rngs::SmallRng;
+    //
+    use ndarray_rand::{rand::SeedableRng, rand_distr::Uniform, RandomExt};
+
+    #[test]
+    /// Check that for random data the n trees is used
+    fn check_n_trees() -> Result<()> {
+        let mut rng = SmallRng::seed_from_u64(42);
+
+        // create very sparse data
+        let data = Array::random_using((50, 50), Uniform::new(-1., 1.), &mut rng);
+        let targets = (0..50).collect::<Array1<usize>>();
+        //
+        let dataset = Dataset::new(data, targets);
+        //
+        // // check that the provided depth is actually used
+        // for max_depth in &[1, 5, 10, 20] {
+        //     let model = DecisionTree::params()
+        //         .max_depth(Some(*max_depth))
+        //         .min_impurity_decrease(1e-10f64)
+        //         .min_weight_split(1e-10)
+        //         .fit(&dataset)?;
+        //     assert_eq!(model.max_depth(), *max_depth);
+        // }
+        for trees_num in [1, 5, 20, 100]{
+            let model = RandomForest::params().n_trees(trees_num).fit(&dataset)?;
+            assert_eq!(model.n_trees, trees_num);
+
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    /// Check that a zero trees param panics
+    fn panic_min_impurity_decrease() {
+        RandomForest::<f64, bool>::params()
+            .n_trees(0)
+            .check()
+            .unwrap();
+    }
+}
