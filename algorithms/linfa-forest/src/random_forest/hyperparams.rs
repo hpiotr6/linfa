@@ -61,7 +61,7 @@ impl<F: Float, L: Label> RandomForestParams<F, L> {
         Self(RandomForestValidParams {
             n_trees: 100,
             tree_params: DecisionTreeParams::new(),
-            bootstrap_type: BootstrapType::BootstrapSamples(10),
+            bootstrap_type: BootstrapType::BootstrapSamples(120),
             trees: Vec::new()
         })
     }
