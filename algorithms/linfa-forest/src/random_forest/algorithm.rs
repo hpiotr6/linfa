@@ -1,5 +1,7 @@
-//! Linear decision trees
+//! Random Forest Classifier
 //!
+
+
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
@@ -100,7 +102,7 @@ pub fn most_common<N: Eq + Label, D: Dimension>(array: &Array<N, D>) -> Result<A
         for predict in sample {
             *hashmap.entry(predict.clone()).or_default() += 1;
         }
-        ret.push((hashmap.into_iter().max_by_key(|cell| cell.1).ok_or("Empty vector?").unwrap().0));
+        ret.push(hashmap.into_iter().max_by_key(|cell| cell.1).ok_or("Empty vector?").unwrap().0);
     }
     Ok(Array1::from_vec(ret))
 }
