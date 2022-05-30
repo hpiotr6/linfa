@@ -8,6 +8,7 @@ use linfa::prelude::*;
 use linfa_forest::{RandomForest, Result};
 use linfa_trees::{DecisionTree, SplitQuality};
 use ndarray::{ArrayBase, OwnedRepr, Array2, Ix2, Array, Dimension};
+use linfa_forest::BootstrapType::BootstrapSamples;
 
 fn main() -> Result<()> {
     let mut rng = SmallRng::seed_from_u64(42);
@@ -27,6 +28,7 @@ fn main() -> Result<()> {
     let forest = RandomForest::params()
         .n_trees(100)
         .tree_params(tree_params)
+        .bootstrap_type(BootstrapSamples(120))
         .fit(&train)?;
 
     // // Get accuracy on training set

@@ -16,11 +16,11 @@ pub enum BootstrapType {
     BootstrapSamplesFeatures(usize, usize)
 }
 
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(crate = "serde_crate")
-)]
+// #[cfg_attr(
+//     feature = "serde",
+//     derive(Serialize, Deserialize),
+//     serde(crate = "serde_crate")
+// )]
  // #[derive(Clone, Debug)]
 pub struct RandomForestValidParams<F: Float, L: Label> {
     n_trees: usize,
@@ -47,12 +47,12 @@ impl<F: Float, L: Label> RandomForestValidParams<F, L> {
     }
 
 }
-
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(crate = "serde_crate")
-)]
+//
+// #[cfg_attr(
+//     feature = "serde",
+//     derive(Serialize, Deserialize),
+//     serde(crate = "serde_crate")
+// )]
 // #[derive(Clone, Debug)]
 pub struct RandomForestParams<F: Float, L: Label>(RandomForestValidParams<F, L>);
 
@@ -76,7 +76,7 @@ impl<F: Float, L: Label> RandomForestParams<F, L> {
         self
     }
 
-    pub fn bootstrap_n_samples(mut self, bootstrap_type: BootstrapType) -> Self {
+    pub fn bootstrap_type(mut self, bootstrap_type: BootstrapType) -> Self {
         self.0.bootstrap_type = bootstrap_type;
         self
     }
@@ -105,7 +105,7 @@ impl<F: Float, L: Label> ParamGuard for RandomForestParams<F, L> {
     type Error = Error;
 
     fn check_ref(&self) -> Result<&Self::Checked> {
-        if self.0.n_trees <= 0 {
+        if self.0.n_trees == 0 {
             Err(Error::Parameters(format!(
                 "Number of trees in a forest must be greater than zero!"
             )))

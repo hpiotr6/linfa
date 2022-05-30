@@ -4,12 +4,13 @@
 
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_set::Iter;
 use std::hash::{Hash, Hasher};
 
 use linfa::dataset::{AsMultiTargets, AsSingleTargets, AsTargets, FromTargetArray};
-use ndarray::{Array, Array1, Array2, ArrayBase, Axis, Data, DataOwned, Dimension, Ix1, Ix2, ShapeBuilder};
+use ndarray::{Array, Array1, Array2, ArrayBase, Axis, Data, DataOwned, Dim, Dimension, Ix1, Ix2, OwnedRepr, ShapeBuilder};
 use rand::rngs::SmallRng;
-use rand::SeedableRng;
+use rand::{Rng, RngCore, SeedableRng};
 
 use super::{RandomForestValidParams, BootstrapType};
 use linfa::{dataset::{Labels, Records}, error::Error, error::Result, traits::*, DatasetBase, Float, Label, ParamGuard, Dataset};
@@ -28,19 +29,53 @@ pub struct RandomForest<F: Float, L: Label> {
     trees: Vec<DecisionTree<F, L>>
 }
 
+fn get_bootstrap_iterator<'b, D, L: Label + Copy + 'b + std::fmt::Debug, F: Float, T, U: Clone + Copy, R: Rng, S>
+(bootstrap_type: BootstrapType,
+ dataset: &'b DatasetBase<ArrayBase<D, Ix2>, T>,
+ rng: &'b mut R)
+    // -> Box<dyn Iterator<Item=DatasetBase<Array2<F>, ArrayBase<OwnedRepr<L>, Dim<[usize; 1]>>>> + 'b>
+        -> Box<dyn Iterator<Item=DatasetBase<ArrayBase<OwnedRepr<F>, Ix2>, ArrayBase<OwnedRepr<L>, Dim<[usize; 1]>>>> + 'b>
+    where
+        D: Data<Elem = F>,
+        T: AsSingleTargets<Elem = L> + Labels<Elem = L>,
+        T: FromTargetArray<'b, Owned = ArrayBase<OwnedRepr<L>, Dim<[usize; 1]>>>,
+        <T as FromTargetArray<'b>>::Owned: 'b,
+        <T as linfa::dataset::FromTargetArray<'b>>::Owned: linfa::dataset::AsTargets
+{
+    // let records2 = dataset.records.to_owned();
+    // let targets2= dataset.targets.as_targets().to_owned();
+    // let dataset2 = DatasetBase::new(records2, targets2);
+    match bootstrap_type {
+        BootstrapType::BootstrapSamples(n_samples) =>
+            Box::new(dataset.bootstrap_samples(n_samples, rng)),
+        BootstrapType::BootstrapFeatures(n_features) =>
+            Box::new(dataset.bootstrap_features(n_features, rng)),
+        BootstrapType::BootstrapSamplesFeatures(n_samples, n_features) =>
+            Box::new(dataset.bootstrap((n_samples, n_features), rng))
+    }
+}
 
-impl<'a, F: Float, L: Label + 'a + std::fmt::Debug, D, T> Fit<ArrayBase<D, Ix2>, T, Error>
+// pub fn search<'b, F: Clone, E: Copy + 'b, T,
+//     I: Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b>>::Owned>> + 'b>
+// (t: I) -> bool
+// where
+//     T: FromTargetArray<'b, Elem = E>,
+//     T::Owned: AsTargets
+// {
+//     t.any(|m| m == 1)
+// }
+
+
+impl<'a, F: Float, L: Label + 'a + std::fmt::Debug, D, T>
+Fit<ArrayBase<D, Ix2>, T, Error>
 for RandomForestValidParams<F, L>
     where
         D: Data<Elem = F>,
         T: AsSingleTargets<Elem = L> + Labels<Elem = L>,
+        T: FromTargetArray<'a>,
+        <T as FromTargetArray<'a>>::Owned: AsTargets,
+        <T as AsTargets>::Elem: Copy
 
-
-
-// FIXME: funkcje dataset.bootstrap wymagaja tych traitow (moze da sie to zapisac lepiej?)
-T: FromTargetArray<'a> ,
-      <T as FromTargetArray<'a>>::Owned: AsTargets,
-      <T as AsTargets>::Elem: Copy
 {
     type Object = RandomForest<F, L>;
 
@@ -49,20 +84,32 @@ T: FromTargetArray<'a> ,
         let mut rng = SmallRng::seed_from_u64(42); // TODO: rng jako parametr lasu
         // let x = dataset.bootstrap_samples(10, &mut rng);
 
-        // FIXME: wybór rodzaju bootstrapa nie dziala, kompilator nie pozwala
-        // let mut subsample_iterator = match self.bootstrap_type() {
-        //     BootstrapType::BootstrapSamples(n_samples) => dataset.bootstrap_samples(n_samples, &mut rng),
-        //     BootstrapType::BootstrapFeatures(n_features) => dataset.bootstrap_features(n_features, &mut rng),
-        //     BootstrapType::BootstrapSamplesFeatures(n_samples, n_features) => dataset.bootstrap((n_samples, n_features), &mut rng)
-        // };
-        let mut trees: Vec<DecisionTree<F, L>> = Vec::new();
-        let tree_valid_params = self.tree_params().clone().check()?;
+        // TODO: czy da się to zrobić bez kopiowania całej bazy danych?
         let records2 = dataset.records.to_owned();
         let targets2= dataset.targets.as_targets().to_owned();
         let dataset2 = DatasetBase::new(records2, targets2);
 
 
-        let mut subsample_iterator = dataset2.bootstrap_samples(120, &mut rng);
+        let mut subsample_iterator= match self.bootstrap_type() {
+            BootstrapType::BootstrapSamples(n_samples) =>
+                Box::new(dataset2.bootstrap_samples(n_samples, &mut rng))
+                    as Box< dyn Iterator< Item = DatasetBase<Array2<F>, ArrayBase<OwnedRepr<_>, Dim<[usize; 1]>>> >>,
+            BootstrapType::BootstrapFeatures(n_features) =>
+                Box::new(dataset2.bootstrap_features(n_features, &mut rng))
+                    as Box< dyn Iterator< Item = DatasetBase<Array2<F>, ArrayBase<OwnedRepr<_>, Dim<[usize; 1]>>> >>,
+            BootstrapType::BootstrapSamplesFeatures(n_samples, n_features) =>
+                Box::new(dataset2.bootstrap((n_samples, n_features), &mut rng))
+                    as Box< dyn Iterator< Item = DatasetBase<Array2<F>, ArrayBase<OwnedRepr<_>, Dim<[usize; 1]>>> >>
+        };
+
+        let mut trees: Vec<DecisionTree<F, L>> = Vec::new();
+        let tree_valid_params = self.tree_params().clone().check()?;
+
+
+        // let mut subsample_iterator = get_bootstrap_iterator(self.bootstrap_type(), dataset, &mut rng);
+
+
+        // let mut subsample_iterator = dataset2.bootstrap((120, 4), &mut rng);
         for _i in 0..self.n_trees() {
             let subsample = subsample_iterator.next().ok_or(std::fmt::Error).unwrap();
             trees.push(tree_valid_params.fit(&subsample)?);
