@@ -61,6 +61,7 @@ T: FromTargetArray<'a> ,
         let targets2= dataset.targets.as_targets().to_owned();
         let dataset2 = DatasetBase::new(records2, targets2);
 
+
         let mut subsample_iterator = dataset2.bootstrap_samples(120, &mut rng);
         for _i in 0..self.n_trees() {
             let subsample = subsample_iterator.next().ok_or(std::fmt::Error).unwrap();
@@ -86,7 +87,9 @@ PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
             y.len(),
             "The number of data points must match the number of output targets."
         );
-        make_prediction(x, self).unwrap();
+        println!("{:?}", x);
+        println!("{:?}", y);
+        make_prediction(x, y, self).unwrap();
     }
 
     fn default_target(&self, x: &ArrayBase<D, Ix2>) -> Array1<L> {
@@ -95,22 +98,27 @@ PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
 }
 
 
-pub fn most_common<N: Eq + Label, D: Dimension>(array: &Array<N, D>) -> Result<Array1<N>> where N: Hash{
+pub fn most_common<N: Eq + Label, D: Dimension>(
+    array: &Array<N, D>
+) -> Result<Array1<N>> where N: Hash{
     let mut ret: Vec<N> = Vec::new();
+    println!("{:?}", array);
     for sample in array.columns() {
         let mut hashmap: HashMap<N, usize> = HashMap::new();
         for predict in sample {
             *hashmap.entry(predict.clone()).or_default() += 1;
         }
         ret.push(hashmap.into_iter().max_by_key(|cell| cell.1).ok_or("Empty vector?").unwrap().0);
+
     }
     Ok(Array1::from_vec(ret))
 }
 
 
-fn make_prediction<F: Float, L: Label + Default>(
+fn make_prediction<F: Float, L: Label + Default + Eq>(
     x : &ArrayBase<impl Data<Elem = F>, Ix2>,
-    forest: &RandomForest<F, L>) -> Result<Array1<L>>
+    y : &mut Array1<L>,
+    forest: &RandomForest<F, L>) -> Result<()>
 {
 
     // klasyfikacja
@@ -121,7 +129,12 @@ fn make_prediction<F: Float, L: Label + Default>(
     }
     let predictions = Array2::from_shape_vec(
         (forest.n_trees, x.nsamples()), predictions)?;
-    most_common(&predictions)
+
+    let final_prediction = most_common(&predictions)?;
+    Ok(y.clone_from(&final_prediction))
+
+
+
 
 }
 

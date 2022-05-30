@@ -13,7 +13,9 @@ fn main() -> Result<()> {
     let mut rng = SmallRng::seed_from_u64(42);
 
     // Load the dataset
-    let (train, test) = linfa_datasets::iris().shuffle(&mut rng).split_with_ratio(0.8);
+    let (train, test) = linfa_datasets::iris()
+        .shuffle(&mut rng)
+        .split_with_ratio(0.8);
 
     // Fit forest
     let tree_params = DecisionTree::params()
@@ -26,6 +28,7 @@ fn main() -> Result<()> {
         .n_trees(100)
         .tree_params(tree_params)
         .fit(&train)?;
+
     // // Get accuracy on training set
     let cm = forest.predict(&test).confusion_matrix(&test)?;
     println!("{:?}", cm);
