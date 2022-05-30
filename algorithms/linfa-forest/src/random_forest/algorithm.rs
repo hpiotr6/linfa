@@ -29,42 +29,6 @@ pub struct RandomForest<F: Float, L: Label> {
     trees: Vec<DecisionTree<F, L>>
 }
 
-fn get_bootstrap_iterator<'b, D, L: Label + Copy + 'b + std::fmt::Debug, F: Float, T, U: Clone + Copy, R: Rng, S>
-(bootstrap_type: BootstrapType,
- dataset: &'b DatasetBase<ArrayBase<D, Ix2>, T>,
- rng: &'b mut R)
-    // -> Box<dyn Iterator<Item=DatasetBase<Array2<F>, ArrayBase<OwnedRepr<L>, Dim<[usize; 1]>>>> + 'b>
-        -> Box<dyn Iterator<Item=DatasetBase<ArrayBase<OwnedRepr<F>, Ix2>, ArrayBase<OwnedRepr<L>, Dim<[usize; 1]>>>> + 'b>
-    where
-        D: Data<Elem = F>,
-        T: AsSingleTargets<Elem = L> + Labels<Elem = L>,
-        T: FromTargetArray<'b, Owned = ArrayBase<OwnedRepr<L>, Dim<[usize; 1]>>>,
-        <T as FromTargetArray<'b>>::Owned: 'b,
-        <T as linfa::dataset::FromTargetArray<'b>>::Owned: linfa::dataset::AsTargets
-{
-    // let records2 = dataset.records.to_owned();
-    // let targets2= dataset.targets.as_targets().to_owned();
-    // let dataset2 = DatasetBase::new(records2, targets2);
-    match bootstrap_type {
-        BootstrapType::BootstrapSamples(n_samples) =>
-            Box::new(dataset.bootstrap_samples(n_samples, rng)),
-        BootstrapType::BootstrapFeatures(n_features) =>
-            Box::new(dataset.bootstrap_features(n_features, rng)),
-        BootstrapType::BootstrapSamplesFeatures(n_samples, n_features) =>
-            Box::new(dataset.bootstrap((n_samples, n_features), rng))
-    }
-}
-
-// pub fn search<'b, F: Clone, E: Copy + 'b, T,
-//     I: Iterator<Item = DatasetBase<Array2<F>, <T as FromTargetArray<'b>>::Owned>> + 'b>
-// (t: I) -> bool
-// where
-//     T: FromTargetArray<'b, Elem = E>,
-//     T::Owned: AsTargets
-// {
-//     t.any(|m| m == 1)
-// }
-
 
 impl<'a, F: Float, L: Label + 'a + std::fmt::Debug, D, T>
 Fit<ArrayBase<D, Ix2>, T, Error>
