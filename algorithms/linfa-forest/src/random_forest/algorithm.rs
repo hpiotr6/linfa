@@ -1,8 +1,6 @@
 //! Random Forest Classifier
 //!
 
-
-
 use std::collections::{HashMap};
 use std::hash::{Hash};
 use linfa::dataset::{AsSingleTargets, AsTargets, FromTargetArray};
@@ -11,10 +9,6 @@ use ndarray::{Array, Array1, Array2, ArrayBase, Data, Dim, Dimension, Ix2, Owned
 use super::{RandomForestValidParams, BootstrapType};
 use linfa::{dataset::{Labels, Records}, error::Error, error::Result, traits::*, DatasetBase, Float, Label, ParamGuard};
 use linfa_trees::{DecisionTree};
-
-
-
-
 
 #[derive(Debug)]
 pub struct RandomForest<F: Float, L: Label> {
