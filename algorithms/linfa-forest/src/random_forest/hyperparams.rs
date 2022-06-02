@@ -2,12 +2,12 @@ use linfa::{
     error::{Error, Result},
     Float, Label, ParamGuard,
 };
-use linfa_trees::{DecisionTree, DecisionTreeParams, DecisionTreeValidParams, SplitQuality};
+use linfa_trees::{DecisionTreeParams};
 
-use std::marker::PhantomData;
 
-#[cfg(feature = "serde")]
-use serde_crate::{Deserialize, Serialize};
+use rand::rngs::{StdRng};
+use rand::SeedableRng;
+
 
 #[derive(Clone, Copy, Debug)]
 pub enum BootstrapType {
@@ -16,17 +16,13 @@ pub enum BootstrapType {
     BootstrapSamplesFeatures(usize, usize)
 }
 
-// #[cfg_attr(
-//     feature = "serde",
-//     derive(Serialize, Deserialize),
-//     serde(crate = "serde_crate")
-// )]
- // #[derive(Clone, Debug)]
+
+#[derive(Debug)]
 pub struct RandomForestValidParams<F: Float, L: Label> {
     n_trees: usize,
     tree_params: DecisionTreeParams<F, L>,
     bootstrap_type: BootstrapType,
-    trees: Vec<DecisionTree<F, L>>
+    rng: StdRng
 }
 
 use crate::RandomForest;
@@ -39,20 +35,13 @@ impl<F: Float, L: Label> RandomForestValidParams<F, L> {
     pub fn bootstrap_type(&self) -> BootstrapType {
         self.bootstrap_type
     }
-    pub fn trees(&self) -> &Vec<DecisionTree<F, L>> {
-        &self.trees
-    }
     pub fn tree_params(&self) -> &DecisionTreeParams<F, L> {
         &self.tree_params
     }
+    pub fn rng(&self) -> &StdRng { &self.rng }
 
 }
-//
-// #[cfg_attr(
-//     feature = "serde",
-//     derive(Serialize, Deserialize),
-//     serde(crate = "serde_crate")
-// )]
+
 // #[derive(Clone, Debug)]
 pub struct RandomForestParams<F: Float, L: Label>(RandomForestValidParams<F, L>);
 
@@ -62,7 +51,7 @@ impl<F: Float, L: Label> RandomForestParams<F, L> {
             n_trees: 100,
             tree_params: DecisionTreeParams::new(),
             bootstrap_type: BootstrapType::BootstrapSamples(120),
-            trees: Vec::new()
+            rng: StdRng::from_entropy()
         })
     }
 
@@ -81,6 +70,13 @@ impl<F: Float, L: Label> RandomForestParams<F, L> {
         self.0.bootstrap_type = bootstrap_type;
         self
     }
+
+    pub fn rng(mut self, rng: StdRng) -> Self {
+        self.0.rng = rng;
+        self
+    }
+
+
 }
 
 impl<F: Float, L: Label> Default for RandomForestParams<F, L> {

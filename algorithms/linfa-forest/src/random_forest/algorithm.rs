@@ -2,68 +2,23 @@
 //!
 
 
-use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
-use std::collections::hash_set::Iter;
-use std::hash::{Hash, Hasher};
 
-use linfa::dataset::{AsMultiTargets, AsSingleTargets, AsTargets, FromTargetArray};
-use ndarray::{Array, Array1, Array2, ArrayBase, Axis, Data, DataOwned, Dim, Dimension, Ix1, Ix2, OwnedRepr, ShapeBuilder};
-use rand::rngs::SmallRng;
-use rand::{Rng, RngCore, SeedableRng};
+use std::collections::{HashMap};
+use std::hash::{Hash};
+use linfa::dataset::{AsSingleTargets, AsTargets, FromTargetArray};
+use ndarray::{Array, Array1, Array2, ArrayBase, Data, Dim, Dimension, Ix2, OwnedRepr};
 
 use super::{RandomForestValidParams, BootstrapType};
-use linfa::{dataset::{Labels, Records}, error::Error, error::Result, traits::*, DatasetBase, Float, Label, ParamGuard, Dataset};
-use linfa_trees::{DecisionTree, DecisionTreeParams, DecisionTreeValidParams};
-use linfa::prelude::*;
+use linfa::{dataset::{Labels, Records}, error::Error, error::Result, traits::*, DatasetBase, Float, Label, ParamGuard};
+use linfa_trees::{DecisionTree};
 
 
-/// Random Forest model for classification.
-///
-/// ### Structure
-/// A random forest structure is an ensemble, which consist of many decision tree models.
-///
-/// ### Algorithm
-///
-/// A random forest algorithm is an ensemble where:
-/// * Decision tree are taught on bootstrapped dataset
-/// * Each internal decision tree makes a prediction also known as a single vote
-/// * Votes are summed up and then based on a majority of votes decision are made
-///
-/// ### Predictions
-///
-/// To predict the label of a sample, random forest sums up votes and then based on a majority of votes decision are made
-///
-/// ### Example
-///
-/// Here is an example on how to train a decision tree from its parameters:
-///
-/// ```rust
-///
-/// use linfa::prelude::*;
-/// use linfa_datasets;
-/// use linfa_forest::RandomForest;
-///
-/// // Load the dataset
-/// let dataset = linfa_datasets::iris();
-/// // Fit the tree
-/// let model = RandomForest::params().fit(&dataset).unwrap();
-/// // Get accuracy on training set
-/// let accuracy = model.predict(&dataset).confusion_matrix(&dataset).unwrap().accuracy();
-///
-/// assert!(accuracy > 0.9);
-///
-/// ```
-///
-#[cfg(feature = "serde")]
-use serde_crate::{Deserialize, Serialize};
 
 
+
+#[derive(Debug)]
 pub struct RandomForest<F: Float, L: Label> {
-    n_trees: usize,
-    tree_params: DecisionTreeParams<F, L>,
-    bootstrap_type: BootstrapType,
-    trees: Vec<DecisionTree<F, L>>
+    trees: Vec<DecisionTree<F, L>>,
 }
 
 
@@ -83,24 +38,25 @@ for RandomForestValidParams<F, L>
     /// Fit a decision tree using `hyperparamters` on the dataset consisting of
     /// a matrix of features `x` and an array of labels `y`.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
-        let mut rng = SmallRng::seed_from_u64(42); // TODO: rng jako parametr lasu
-        // let x = dataset.bootstrap_samples(10, &mut rng);
 
-        // TODO: czy da się to zrobić bez kopiowania całej bazy danych?
-        let records2 = dataset.records.to_owned();
-        let targets2= dataset.targets.as_targets().to_owned();
-        let dataset2 = DatasetBase::new(records2, targets2);
+        // cloning dataset for bootstrapping
+        let dataset = DatasetBase::
+        new(dataset.records.as_targets().to_owned(),
+            dataset.targets.as_targets().to_owned())
+            .with_weights(dataset.weights.as_targets().to_owned())
+            .with_feature_names(dataset.feature_names());
 
-
+        // creating bootstrapped dataset as infinite subsample-iterator
+        let mut rng = self.rng().clone();
         let mut subsample_iterator= match self.bootstrap_type() {
             BootstrapType::BootstrapSamples(n_samples) =>
-                Box::new(dataset2.bootstrap_samples(n_samples, &mut rng))
+                Box::new(dataset.bootstrap_samples(n_samples, &mut rng))
                     as Box< dyn Iterator< Item = DatasetBase<Array2<F>, ArrayBase<OwnedRepr<_>, Dim<[usize; 1]>>> >>,
             BootstrapType::BootstrapFeatures(n_features) =>
-                Box::new(dataset2.bootstrap_features(n_features, &mut rng))
+                Box::new(dataset.bootstrap_features(n_features, &mut rng))
                     as Box< dyn Iterator< Item = DatasetBase<Array2<F>, ArrayBase<OwnedRepr<_>, Dim<[usize; 1]>>> >>,
             BootstrapType::BootstrapSamplesFeatures(n_samples, n_features) =>
-                Box::new(dataset2.bootstrap((n_samples, n_features), &mut rng))
+                Box::new(dataset.bootstrap((n_samples, n_features), &mut rng))
                     as Box< dyn Iterator< Item = DatasetBase<Array2<F>, ArrayBase<OwnedRepr<_>, Dim<[usize; 1]>>> >>
         };
 
@@ -108,19 +64,12 @@ for RandomForestValidParams<F, L>
         let tree_valid_params = self.tree_params().clone().check()?;
 
 
-        // let mut subsample_iterator = get_bootstrap_iterator(self.bootstrap_type(), dataset, &mut rng);
-
-
-        // let mut subsample_iterator = dataset2.bootstrap((120, 4), &mut rng);
         for _i in 0..self.n_trees() {
             let subsample = subsample_iterator.next().ok_or(std::fmt::Error).unwrap();
             trees.push(tree_valid_params.fit(&subsample)?);
         }
 
     Ok(RandomForest{
-        n_trees: self.n_trees(),
-        tree_params: self.tree_params().clone(),
-        bootstrap_type: self.bootstrap_type(),
         trees
     })
      }
@@ -137,8 +86,6 @@ PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
             y.len(),
             "The number of data points must match the number of output targets."
         );
-        println!("{:?}", x);
-        println!("{:?}", y);
         make_prediction(x, y, self).unwrap();
     }
 
@@ -152,7 +99,6 @@ pub fn most_common<N: Eq + Label, D: Dimension>(
     array: &Array<N, D>
 ) -> Result<Array1<N>> where N: Hash{
     let mut ret: Vec<N> = Vec::new();
-    println!("{:?}", array);
     for sample in array.columns() {
         let mut hashmap: HashMap<N, usize> = HashMap::new();
         for predict in sample {
@@ -178,7 +124,7 @@ fn make_prediction<F: Float, L: Label + Default + Eq>(
         predictions.append(&mut gini_pred)
     }
     let predictions = Array2::from_shape_vec(
-        (forest.n_trees, x.nsamples()), predictions)?;
+        (forest.trees.len(), x.nsamples()), predictions)?;
 
     let final_prediction = most_common(&predictions)?;
     Ok(y.clone_from(&final_prediction))
@@ -196,6 +142,7 @@ mod tests {
     // use approx::assert_abs_diff_eq;
     // use linfa::{error::Result, metrics::ToConfusionMatrix, Dataset, ParamGuard};
     use ndarray::array;
+    use linfa::Dataset;
     // use ndarray::{array, concatenate, s, Array, Array1, Array2, Axis};
     // use rand::rngs::SmallRng;
     // //
