@@ -17,7 +17,7 @@ pub enum BootstrapType {
 }
 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RandomForestValidParams<F: Float, L: Label> {
     n_trees: usize,
     tree_params: DecisionTreeParams<F, L>,
