@@ -88,7 +88,7 @@ PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
     }
 }
 
-/// Return the most common element
+/// Return the most common elements
 pub fn most_common<N: Eq + Label, D: Dimension>(
     array: &Array<N, D>
 ) -> Result<Array1<N>> where N: Hash{
@@ -114,6 +114,7 @@ fn make_prediction<F: Float, L: Label + Default + Eq>(
     // klasyfikacja
     let mut predictions: Vec<L> = Vec::new();
     for (_i, tree) in forest.trees.iter().enumerate(){
+        // FIXME czy tu koniecznie musi by gini?
         let mut gini_pred = tree.predict(x).to_vec();
         predictions.append(&mut gini_pred)
     }
@@ -132,15 +133,49 @@ fn make_prediction<F: Float, L: Label + Default + Eq>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    //
-    // use approx::assert_abs_diff_eq;
-    // use linfa::{error::Result, metrics::ToConfusionMatrix, Dataset, ParamGuard};
     use ndarray::array;
     use linfa::Dataset;
-    // use ndarray::{array, concatenate, s, Array, Array1, Array2, Axis};
-    // use rand::rngs::SmallRng;
-    // //
-    // use ndarray_rand::{rand::SeedableRng, rand_distr::Uniform, RandomExt};
+
+    #[test]
+    fn test_most_common() -> Result<()> {
+        let predictions = array![[0, 1, 2, 3],
+                                              [1, 1, 0, 3],
+                                              [1, 1, 0, 2],
+                                              [1, 1, 2, 2],
+                                              [0, 1, 2, 3]];
+        let result = array![1,1,2,3];
+        let predicted_winners = most_common(&predictions);
+        println!("Our winner: {:?}", predicted_winners);
+        println!("Our result: {:?}", result);
+        assert_eq!(&result, &predicted_winners?);
+        Ok(())
+    }
+
+
+
+    #[test]
+    /// Check if model trained on same data as tested gives proper target
+    fn simple_case() -> Result<()> {
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
+
+        let dataset = Dataset::new(data.clone(), targets);
+        let model = RandomForest::params().fit(&dataset)?;
+
+        assert_eq!(model.predict(&data), array![0, 0, 1]);
+
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    /// Check that a zero trees param panics
+    fn panic_min_impurity_decrease() {
+        RandomForest::<f64, bool>::params()
+            .n_trees(0)
+            .check()
+            .unwrap();
+    }
 
     // #[test]
     // /// Check that for random data the n trees is used
@@ -170,28 +205,4 @@ mod tests {
     //
     //     Ok(())
     // }
-
-    #[test]
-    /// Check if model trained on same data as tested gives proper target
-    fn simple_case() -> Result<()> {
-        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
-        let targets = array![0, 0, 1];
-
-        let dataset = Dataset::new(data.clone(), targets);
-        let model = RandomForest::params().fit(&dataset)?;
-
-        assert_eq!(model.predict(&data), array![0, 0, 1]);
-
-        Ok(())
-    }
-
-    #[test]
-    #[should_panic]
-    /// Check that a zero trees param panics
-    fn panic_min_impurity_decrease() {
-        RandomForest::<f64, bool>::params()
-            .n_trees(0)
-            .check()
-            .unwrap();
-    }
 }
