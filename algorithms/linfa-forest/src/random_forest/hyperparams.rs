@@ -66,16 +66,17 @@ impl<F: Float, L: Label> RandomForestParams<F, L> {
         })
     }
 
+    /// Sets number of trees in forest
     pub fn n_trees(mut self, n_trees: usize) -> Self {
         self.0.n_trees = n_trees;
         self
     }
-
+    /// Sets parameters of decision trees (same to each other)
     pub fn tree_params(mut self, tree_params: DecisionTreeParams<F, L>) -> Self {
         self.0.tree_params = tree_params;
         self
     }
-
+    /// Sets type of bootstrapping
     pub fn bootstrap_type(mut self, bootstrap_type: BootstrapType) -> Self {
         self.0.bootstrap_type = bootstrap_type;
         self
@@ -92,7 +93,7 @@ impl <F: Float, L: Label> RandomForest<F, L> {
     /// Defaults are provided if the optional parameters are not specified:
     /// * `n_trees = 100`
     /// * `tree = DecisionTreeParams::new()`
-    /// * `bootstrap_type = BootstrapType::BootstrapSamples(10)`
+    /// * `bootstrap_type = BootstrapType::BootstrapSamples(120)`
 
     #[allow(clippy::new_ret_no_self)]
     pub fn params() -> RandomForestParams<F, L> {

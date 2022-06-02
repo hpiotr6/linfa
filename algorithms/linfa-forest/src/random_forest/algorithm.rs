@@ -18,6 +18,43 @@ use linfa_trees::{DecisionTree, DecisionTreeParams, DecisionTreeValidParams};
 use linfa::prelude::*;
 
 
+/// Random Forest model for classification.
+///
+/// ### Structure
+/// A random forest structure is an ensemble, which consist of many decision tree models.
+///
+/// ### Algorithm
+///
+/// A random forest algorithm is an ensemble where:
+/// * Decision tree are taught on bootstrapped dataset
+/// * Each internal decision tree makes a prediction also known as a single vote
+/// * Votes are summed up and then based on a majority of votes decision are made
+///
+/// ### Predictions
+///
+/// To predict the label of a sample, random forest sums up votes and then based on a majority of votes decision are made
+///
+/// ### Example
+///
+/// Here is an example on how to train a decision tree from its parameters:
+///
+/// ```rust
+///
+/// use linfa::prelude::*;
+/// use linfa_datasets;
+/// use linfa_forest::RandomForest;
+///
+/// // Load the dataset
+/// let dataset = linfa_datasets::iris();
+/// // Fit the tree
+/// let model = RandomForest::params().fit(&dataset).unwrap();
+/// // Get accuracy on training set
+/// let accuracy = model.predict(&dataset).confusion_matrix(&dataset).unwrap().accuracy();
+///
+/// assert!(accuracy > 0.9);
+///
+/// ```
+///
 #[cfg(feature = "serde")]
 use serde_crate::{Deserialize, Serialize};
 
@@ -43,7 +80,8 @@ for RandomForestValidParams<F, L>
 {
     type Object = RandomForest<F, L>;
 
-
+    /// Fit a decision tree using `hyperparamters` on the dataset consisting of
+    /// a matrix of features `x` and an array of labels `y`.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
         let mut rng = SmallRng::seed_from_u64(42); // TODO: rng jako parametr lasu
         // let x = dataset.bootstrap_samples(10, &mut rng);
@@ -92,6 +130,7 @@ impl<F: Float, L: Label + Default, D: Data<Elem = F>>
 PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
     for RandomForest<F, L> {
 
+    /// Make predictions for each row of a matrix of features `x`.
     fn predict_inplace(&self, x: &ArrayBase<D, Ix2>, y: &mut Array1<L>) {
         assert_eq!(
             x.nrows(),
@@ -108,7 +147,7 @@ PredictInplace<ArrayBase<D, Ix2>, Array1<L>>
     }
 }
 
-
+/// Return the most common element
 pub fn most_common<N: Eq + Label, D: Dimension>(
     array: &Array<N, D>
 ) -> Result<Array1<N>> where N: Hash{
@@ -125,7 +164,7 @@ pub fn most_common<N: Eq + Label, D: Dimension>(
     Ok(Array1::from_vec(ret))
 }
 
-
+/// Classify a sample &x based on majority of votes.
 fn make_prediction<F: Float, L: Label + Default + Eq>(
     x : &ArrayBase<impl Data<Elem = F>, Ix2>,
     y : &mut Array1<L>,
@@ -154,38 +193,53 @@ fn make_prediction<F: Float, L: Label + Default + Eq>(
 mod tests {
     use super::*;
     //
-    use approx::assert_abs_diff_eq;
-    use linfa::{error::Result, metrics::ToConfusionMatrix, Dataset, ParamGuard};
-    use ndarray::{array, concatenate, s, Array, Array1, Array2, Axis};
-    use rand::rngs::SmallRng;
+    // use approx::assert_abs_diff_eq;
+    // use linfa::{error::Result, metrics::ToConfusionMatrix, Dataset, ParamGuard};
+    use ndarray::array;
+    // use ndarray::{array, concatenate, s, Array, Array1, Array2, Axis};
+    // use rand::rngs::SmallRng;
+    // //
+    // use ndarray_rand::{rand::SeedableRng, rand_distr::Uniform, RandomExt};
+
+    // #[test]
+    // /// Check that for random data the n trees is used
+    // fn check_n_trees() -> Result<()> {
+    //     let mut rng = SmallRng::seed_from_u64(42);
     //
-    use ndarray_rand::{rand::SeedableRng, rand_distr::Uniform, RandomExt};
+    //     // create very sparse data
+    //     let data = Array::random_using((50, 50), Uniform::new(-1., 1.), &mut rng);
+    //     let targets = (0..50).collect::<Array1<usize>>();
+    //     //
+    //     let dataset = Dataset::new(data, targets);
+    //     //
+    //     // // check that the provided depth is actually used
+    //     // for max_depth in &[1, 5, 10, 20] {
+    //     //     let model = DecisionTree::params()
+    //     //         .max_depth(Some(*max_depth))
+    //     //         .min_impurity_decrease(1e-10f64)
+    //     //         .min_weight_split(1e-10)
+    //     //         .fit(&dataset)?;
+    //     //     assert_eq!(model.max_depth(), *max_depth);
+    //     // }
+    //     for trees_num in [1, 5, 20, 100]{
+    //         let model = RandomForest::params().n_trees(trees_num).fit(&dataset)?;
+    //         assert_eq!(model.n_trees, trees_num);
+    //
+    //     }
+    //
+    //     Ok(())
+    // }
 
     #[test]
-    /// Check that for random data the n trees is used
-    fn check_n_trees() -> Result<()> {
-        let mut rng = SmallRng::seed_from_u64(42);
+    /// Check if model trained on same data as tested gives proper target
+    fn simple_case() -> Result<()> {
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
 
-        // create very sparse data
-        let data = Array::random_using((50, 50), Uniform::new(-1., 1.), &mut rng);
-        let targets = (0..50).collect::<Array1<usize>>();
-        //
-        let dataset = Dataset::new(data, targets);
-        //
-        // // check that the provided depth is actually used
-        // for max_depth in &[1, 5, 10, 20] {
-        //     let model = DecisionTree::params()
-        //         .max_depth(Some(*max_depth))
-        //         .min_impurity_decrease(1e-10f64)
-        //         .min_weight_split(1e-10)
-        //         .fit(&dataset)?;
-        //     assert_eq!(model.max_depth(), *max_depth);
-        // }
-        for trees_num in [1, 5, 20, 100]{
-            let model = RandomForest::params().n_trees(trees_num).fit(&dataset)?;
-            assert_eq!(model.n_trees, trees_num);
+        let dataset = Dataset::new(data.clone(), targets);
+        let model = RandomForest::params().fit(&dataset)?;
 
-        }
+        assert_eq!(model.predict(&data), array![0, 0, 1]);
 
         Ok(())
     }
