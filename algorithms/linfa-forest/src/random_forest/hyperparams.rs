@@ -42,7 +42,7 @@ impl<F: Float, L: Label> RandomForestValidParams<F, L> {
 
 }
 
-// #[derive(Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct RandomForestParams<F: Float, L: Label>(RandomForestValidParams<F, L>);
 
 impl<F: Float, L: Label> RandomForestParams<F, L> {
@@ -103,9 +103,7 @@ impl<F: Float, L: Label> ParamGuard for RandomForestParams<F, L> {
 
     fn check_ref(&self) -> Result<&Self::Checked> {
         if self.0.n_trees == 0 {
-            Err(Error::Parameters(format!(
-                "Number of trees in a forest must be greater than zero!"
-            )))
+            Err(Error::Parameters("Number of trees in a forest must be greater than zero!".to_string()))
         } else {
             Ok(&self.0)
         }

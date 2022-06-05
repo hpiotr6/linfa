@@ -34,13 +34,13 @@ fn main() -> Result<()> {
     let pred_train = forest.predict(&train);
     let cm_train = pred_train.confusion_matrix(&train)?;
     println!("{:?}", cm_train);
-    println!("Training set accuracy: {:.2}%",100.0 * cm_train.accuracy());
+    println!("Training set accuracy: {:.2}%", 100.0 * cm_train.accuracy());
 
     // Get accuracy on test set
     let pred_test = forest.predict(&test);
     let cm_test = pred_test.confusion_matrix(&test)?;
     println!("{:?}", cm_test);
-    println!("Test set accuracy: {:.2}%",100.0 * cm_test.accuracy());
+    println!("Test set accuracy: {:.2}%", 100.0 * cm_test.accuracy());
 
 
 
