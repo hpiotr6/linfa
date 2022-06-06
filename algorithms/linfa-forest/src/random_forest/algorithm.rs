@@ -143,6 +143,8 @@ mod tests {
     use linfa::prelude::*;
     use linfa_trees::{DecisionTree, SplitQuality};
 
+
+
     #[test]
     // Check if makes verdict correctly.
     fn verdict() -> Result<()> {
@@ -217,6 +219,43 @@ mod tests {
             .fit(&dataset)?;
 
         assert_eq!(model.predict(&data), array![0, 0, 1]);
+
+        Ok(())
+    }
+
+    #[test]
+    /// Check if trees iterator works
+    fn iter() -> Result<()> {
+        let number_of_trees = 3;
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
+
+        let dataset = Dataset::new(data.clone(), targets);
+        let model = RandomForest::params()
+            .n_trees(number_of_trees)
+            .fit(&dataset)?;
+        let mut count = 0;
+        for _tree in model.iter_trees(){
+            count += 1;
+        }
+        assert_eq!(count, number_of_trees);
+
+        Ok(())
+    }
+
+    #[test]
+    /// Check if can get tres
+    fn trees_vec() -> Result<()> {
+        let number_of_trees = 3;
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
+
+        let dataset = Dataset::new(data.clone(), targets);
+        let model = RandomForest::params()
+            .n_trees(number_of_trees)
+            .fit(&dataset)?;
+
+        assert_eq!(model.trees.len(), number_of_trees);
 
         Ok(())
     }
