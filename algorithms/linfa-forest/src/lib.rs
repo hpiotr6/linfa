@@ -15,7 +15,7 @@
 //!
 //! # Current state
 //!
-//! `linfa-forest` currently provides an [implementation](struct.RandomForest.html) of single-tree fitting for classification.
+//! `linfa-forest` currently provides an [implementation](struct.RandomForest.html) of tree fitting for classification.
 //!
 
 mod random_forest;
