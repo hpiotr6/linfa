@@ -1,5 +1,5 @@
 use ndarray_rand::rand::SeedableRng;
-use rand::rngs::{SmallRng, StdRng};
+use rand::rngs::{StdRng};
 
 use linfa::prelude::*;
 use linfa_forest::{RandomForest, Result};
@@ -8,7 +8,8 @@ use linfa_trees::{DecisionTree, SplitQuality};
 use linfa_forest::BootstrapType::BootstrapSamples;
 
 fn main() -> Result<()> {
-    let mut rng = SmallRng::seed_from_u64(42);
+
+    let mut rng = StdRng::seed_from_u64(42);
 
     // Load the dataset
     let (train, test) = linfa_datasets::iris()
@@ -17,8 +18,8 @@ fn main() -> Result<()> {
 
     // Create a sample tree to replicate in the forest
     let tree_params = DecisionTree::params()
-        .split_quality(SplitQuality::Entropy)
-        .max_depth(Some(100))
+        .split_quality(SplitQuality::Gini)
+        .max_depth(Some(10))
         .min_weight_split(1.0)
         .min_weight_leaf(1.0);
 
@@ -27,8 +28,9 @@ fn main() -> Result<()> {
         .n_trees(5)
         .tree_params(tree_params)
         .bootstrap_type(BootstrapSamples(10))
-        .rng(StdRng::from_rng(SmallRng::seed_from_u64(20)).unwrap())
+        .bootstrap_rng(StdRng::seed_from_u64(6))
         .fit(&train)?;
+
 
     // Get accuracy on training set
     let pred_train = forest.predict(&train);

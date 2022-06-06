@@ -22,7 +22,7 @@ pub struct RandomForestValidParams<F: Float, L: Label> {
     n_trees: usize,
     tree_params: DecisionTreeParams<F, L>,
     bootstrap_type: BootstrapType,
-    rng: StdRng
+    bootstrap_rng: StdRng
 }
 
 use crate::RandomForest;
@@ -38,7 +38,7 @@ impl<F: Float, L: Label> RandomForestValidParams<F, L> {
     pub fn tree_params(&self) -> &DecisionTreeParams<F, L> {
         &self.tree_params
     }
-    pub fn rng(&self) -> &StdRng { &self.rng }
+    pub fn bootstrap_rng(&self) -> &StdRng { &self.bootstrap_rng }
 
 }
 
@@ -51,7 +51,7 @@ impl<F: Float, L: Label> RandomForestParams<F, L> {
             n_trees: 100,
             tree_params: DecisionTreeParams::new(),
             bootstrap_type: BootstrapType::BootstrapSamples(120),
-            rng: StdRng::from_entropy()
+            bootstrap_rng: StdRng::from_entropy()
         })
     }
 
@@ -71,8 +71,8 @@ impl<F: Float, L: Label> RandomForestParams<F, L> {
         self
     }
 
-    pub fn rng(mut self, rng: StdRng) -> Self {
-        self.0.rng = rng;
+    pub fn bootstrap_rng(mut self, bootstrap_rng: StdRng) -> Self {
+        self.0.bootstrap_rng = bootstrap_rng;
         self
     }
 

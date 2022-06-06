@@ -37,7 +37,7 @@ for RandomForestValidParams<F, L>
             .with_feature_names(dataset.feature_names());
 
         // creating bootstrapped dataset as infinite subsample-iterator
-        let mut rng = self.rng().clone();
+        let mut rng = self.bootstrap_rng().clone();
         let mut subsample_iterator: Box<dyn Iterator<Item = DatasetBase<Array2<F>, Array1<L>>>> =
             match self.bootstrap_type() {
             BootstrapType::BootstrapSamples(n_samples) =>
