@@ -123,8 +123,11 @@ pub fn make_verdict<L: Label> (trees_predictions: &Array<L, Ix2>) -> Result<Arra
 mod tests {
     use super::*;
     use ndarray::array;
+    use ndarray_rand::rand::SeedableRng;
+    use rand::rngs::{SmallRng, StdRng};
     use linfa::Dataset;
     use linfa::prelude::*;
+    use linfa_trees::{DecisionTree, SplitQuality};
 
     #[test]
     // Check if makes verdict correctly.
@@ -182,5 +185,79 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    /// Check if model can change default tree params
+    fn tree_params() -> Result<()> {
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
 
+        let dataset = Dataset::new(data.clone(), targets);
+        let model = RandomForest::params()
+            .tree_params(
+                DecisionTree::params()
+                    .split_quality(SplitQuality::Entropy)
+                    .max_depth(Some(100))
+                    .min_weight_split(1.0)
+                    .min_weight_leaf(1.0)
+            )
+            .fit(&dataset)?;
+
+        assert_eq!(model.predict(&data), array![0, 0, 1]);
+
+        Ok(())
+    }
+
+    #[test]
+    /// Check if model can change default number of trees
+    fn n_trees_params() -> Result<()> {
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
+
+        let dataset = Dataset::new(data.clone(), targets);
+        let model = RandomForest::params()
+            .n_trees(30)
+            .fit(&dataset)?;
+
+        assert_eq!(model.predict(&data), array![0, 0, 1]);
+
+        Ok(())
+    }
+
+
+    #[test]
+    /// Check if model can change default bootstrap_type
+    fn bootstrap_type_params() -> Result<()> {
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
+
+        let dataset = Dataset::new(data.clone(), targets);
+        let _model = RandomForest::params()
+            .bootstrap_type(BootstrapType::BootstrapSamplesFeatures(45, 7))
+            .fit(&dataset)?;
+        let _model = RandomForest::params()
+            .bootstrap_type(BootstrapType::BootstrapFeatures(12))
+            .fit(&dataset)?;
+        let model = RandomForest::params()
+            .bootstrap_type(BootstrapType::BootstrapSamples(30))
+            .fit(&dataset)?;
+
+        assert_eq!(model.predict(&data), array![0, 0, 1]);
+
+        Ok(())
+    }
+
+    #[test]
+    /// Check if model can change default rng
+    fn rng_param() -> Result<()> {
+        let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
+        let targets = array![0, 0, 1];
+        let dataset = Dataset::new(data.clone(), targets);
+        let model = RandomForest::params()
+            .rng(StdRng::from_rng(SmallRng::seed_from_u64(20)).unwrap())
+            .fit(&dataset)?;
+
+        assert_eq!(model.predict(&data), array![0, 0, 1]);
+
+        Ok(())
+    }
 }
