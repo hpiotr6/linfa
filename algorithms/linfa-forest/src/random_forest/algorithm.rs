@@ -2,6 +2,7 @@
 //!
 
 use std::collections::{HashMap};
+use std::slice::Iter;
 use linfa::dataset::{AsSingleTargets, AsTargets};
 use ndarray::{Array, Array1, Array2, ArrayBase, Data, Ix2};
 
@@ -116,6 +117,19 @@ pub fn make_verdict<L: Label> (trees_predictions: &Array<L, Ix2>) -> Result<Arra
     }
 
     Ok(Array1::from_vec(verdict))
+}
+
+
+impl<F: Float, L: Label> RandomForest<F, L> {
+
+    pub fn iter_trees(&self) -> Iter<'_, DecisionTree<F, L>> {
+        self.trees.iter()
+    }
+
+    pub fn trees(&self) -> &Vec<DecisionTree<F, L>> {
+        &self.trees
+    }
+
 }
 
 

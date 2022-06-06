@@ -95,6 +95,7 @@ impl <F: Float, L: Label> RandomForest<F, L> {
     pub fn params() -> RandomForestParams<F, L> {
         RandomForestParams::new()
     }
+
 }
 
 impl<F: Float, L: Label> ParamGuard for RandomForestParams<F, L> {
