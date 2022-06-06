@@ -124,9 +124,11 @@ mod tests {
     use super::*;
     use ndarray::array;
     use linfa::Dataset;
+    use linfa::prelude::*;
 
     #[test]
-    fn test_most_common() -> Result<()> {
+    // Check if makes verdict correctly.
+    fn verdict() -> Result<()> {
         let predictions = array![[0, 1, 2, 3],
                                               [1, 1, 0, 3],
                                               [1, 1, 0, 2],
@@ -144,7 +146,7 @@ mod tests {
 
     #[test]
     /// Check if model trained on same data as tested gives proper target
-    fn simple_case() -> Result<()> {
+    fn default_params() -> Result<()> {
         let data = array![[1., 2., 3.], [1., 2., 4.], [1., 3., 3.5]];
         let targets = array![0, 0, 1];
 
@@ -159,39 +161,26 @@ mod tests {
     #[test]
     #[should_panic]
     /// Check that a zero trees param panics
-    fn panic_min_impurity_decrease() {
+    fn panic_zero_trees() {
         RandomForest::<f64, bool>::params()
             .n_trees(0)
             .check()
             .unwrap();
     }
 
-    // #[test]
-    // /// Check that for random data the n trees is used
-    // fn check_n_trees() -> Result<()> {
-    //     let mut rng = SmallRng::seed_from_u64(42);
-    //
-    //     // create very sparse data
-    //     let data = Array::random_using((50, 50), Uniform::new(-1., 1.), &mut rng);
-    //     let targets = (0..50).collect::<Array1<usize>>();
-    //     //
-    //     let dataset = Dataset::new(data, targets);
-    //     //
-    //     // // check that the provided depth is actually used
-    //     // for max_depth in &[1, 5, 10, 20] {
-    //     //     let model = DecisionTree::params()
-    //     //         .max_depth(Some(*max_depth))
-    //     //         .min_impurity_decrease(1e-10f64)
-    //     //         .min_weight_split(1e-10)
-    //     //         .fit(&dataset)?;
-    //     //     assert_eq!(model.max_depth(), *max_depth);
-    //     // }
-    //     for trees_num in [1, 5, 20, 100]{
-    //         let model = RandomForest::params().n_trees(trees_num).fit(&dataset)?;
-    //         assert_eq!(model.n_trees, trees_num);
-    //
-    //     }
-    //
-    //     Ok(())
-    // }
+    #[test]
+    /// Check if model trained on iris gets accuracy grater than 0.9
+    fn iris_benchmark() -> Result<()> {
+        // Load the dataset
+        let (train, test) = linfa_datasets::iris().split_with_ratio(0.8);
+        // Fit the tree
+        let forest = RandomForest::params().fit(&train).unwrap();
+        // Get accuracy on training set
+        let accuracy = forest.predict(&test).confusion_matrix(&test).unwrap().accuracy();
+        assert!(accuracy > 0.9);
+
+        Ok(())
+    }
+
+
 }
