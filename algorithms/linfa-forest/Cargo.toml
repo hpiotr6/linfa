@@ -37,7 +37,3 @@ criterion = "0.3.5"
 approx = "0.4"
 
 linfa-datasets = { version = "0.5.0", path = "../../datasets/", features = ["iris"] }
-
-[[bench]]
-name = "random_forest"
-harness = false
