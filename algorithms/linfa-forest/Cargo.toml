@@ -2,7 +2,7 @@
 name = "linfa-forest"
 version = "0.5.0"
 edition = "2021"
-authors = ["Jakub Firlej <jakubfirlej64@gmail.com>", "Piotr Honda <a@b.c>"]
+authors = ["Jakub Firlej <jakubfirlej64@gmail.com>", "Piotr Hondra <piotrhondra@gmail.com>"]
 description = "An implementation of random forest classification algorithm"
 license = "MIT/Apache-2.0"
 
